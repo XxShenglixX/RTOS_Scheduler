@@ -7,6 +7,8 @@
   .extern mainTcb
   .extern taskOneTcb
   .extern taskTwoTcb
+  .extern runningTcb
+  .extern linkedList
 
 .equ TCB_NAME,0
 .equ TCB_SP,4
@@ -26,18 +28,37 @@
 	.type SysTick_Handler, %function
 SysTick_Handler:
 
-	//
-
 	push {r4-r11} //Push the rest of register
-	ldr r0,=mainTcb //Let R0 points to mainTCB, R0 contains address of mainTcb
 
-	ldr r1,=#0	//Clear R1
+	ldr r4, =runningTcb //Load address of runningTcb into R4
+	ldr r4,	[r4]		//Load content in runningTcb into R4
+
+	ldr r1, =#0	//Clear R1
 	add r1, sp //Store current SP into R1
-	str r1,[r0,#TCB_SP] //Store SP loaded in R1 into mainTcb.sp (mainTcb + 4)
 
-	//ldr r0,=taskOneTcb
-	//ldr sp,[r0,#TCB_SP]
+	str r1, [r4,#TCB_SP] //Store SP into runningTcb.sp
 
+	push {lr} //push LR
+
+	ldr r0, =linkedList	//pass in linkedList
+	bl listRemoveHead	//remove head from linked list
+	pop {lr}			//pop LR
+
+	ldr r5,[r0]		// R5 = listRemoveHead()
+	ldr sp, [r5,#TCB_SP]	//load R5.SP into SP
+
+	ldr r3, =runningTcb // Load runningTcb into R3
+	ldr r3,	[r3]		//Load content in runningTcb into R3
+	mov r3,r5		//Let runningTcb = r5
+
+	push {lr} //push LR
+	mov r1,r4
+	ldr r0, =linkedList
+
+	bl listAddTail
+
+	pop {lr}
+	pop {r4-r11}
  	bx	lr
 
 
